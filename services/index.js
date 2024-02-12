@@ -21,6 +21,10 @@ async function fetchAndProcessData(endpoint, query) {
     },
   });
 
+  if (endpoint.includes("genre")) {
+    return response.data.genres;
+  }
+
   if (endpoint.includes("watch/providers")) {
     const promises = response.data.results.map(async (item) => {
       return {
