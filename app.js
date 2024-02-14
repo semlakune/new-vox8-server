@@ -11,7 +11,11 @@ const {errorHandlingMiddleware} = require("./services");
 const app = express();
 const port = process.env.PORT || 4001;
 
-app.use(cors());
+const corsOptions = {
+  origin: process.env.ORIGIN_URL,
+};
+
+app.use(cors(corsOptions)); // cors(corsOptions)
 app.use(compression());
 app.use(express.json());
 app.use('/', routes);
