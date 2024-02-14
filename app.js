@@ -16,15 +16,10 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions)); // cors(corsOptions)
-// app.use((req, res, next) => {
-//   const userAgent = req.headers['user-agent'].toLowerCase();
-//   if (userAgent.includes('mozilla')) { // This is very common in browsers
-//     return res.status(403).send('Access Denied');
-//   }
-//   next();
-// });
+
 app.use(compression());
 app.use(express.json());
+app.use(express.static('public'));
 app.use('/', routes);
 
 process.on('SIGINT', async () => {

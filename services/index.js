@@ -9,7 +9,7 @@ async function fetchAndProcessData(endpoint, query) {
   const cachedData = await redisClient.get(cacheKey);
 
   if (cachedData) {
-    // return JSON.parse(cachedData); // Return cached data if available
+    return JSON.parse(cachedData); // Return cached data if available
   }
 
   const response = await axios.get("https://api.themoviedb.org/3/" + endpoint, {
@@ -39,7 +39,6 @@ async function fetchAndProcessData(endpoint, query) {
   }
 
   const promises = response.data.results
-    .filter((item) => item.poster_path && item.backdrop_path)
     .map(async (item) => {
       let data = {
         ...item,
@@ -47,10 +46,12 @@ async function fetchAndProcessData(endpoint, query) {
         poster_color: "#000000",
         fontColor: "#ffffff",
         posterFontColor: "#ffffff",
+        poster_path: item.poster_path ? `https://image.tmdb.org/t/p/original${item.poster_path}` : process.env.BASE_URL + "/images/no-image.png",
+        backdrop_path: item.backdrop_path ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}` : process.env.BASE_URL + "/images/no-image.png",
       };
 
-      data.poster_path = `https://image.tmdb.org/t/p/original${item.poster_path}`;
-      data.backdrop_path = `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`;
+      // data.poster_path = `https://image.tmdb.org/t/p/original${item.poster_path}`;
+      // data.backdrop_path = `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`;
 
       try {
         const color = await getColor(getCloudinaryUrl(data.backdrop_path));
