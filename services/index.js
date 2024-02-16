@@ -8,9 +8,9 @@ async function fetchAndProcessData(endpoint, query) {
   const cacheKey = `tmdb:${endpoint}:${JSON.stringify(query)}`;
   const cachedData = await redisClient.get(cacheKey);
 
-  if (cachedData) {
-    return JSON.parse(cachedData); // Return cached data if available
-  }
+  // if (cachedData) {
+  //   return JSON.parse(cachedData); // Return cached data if available
+  // }
 
   const response = await axios.get("https://api.themoviedb.org/3/" + endpoint, {
     params: query,
@@ -38,6 +38,30 @@ async function fetchAndProcessData(endpoint, query) {
     return response.data;
   }
 
+  if (response.data.id) { // If the response is a single movie detail
+    let data = {
+      ...response.data,
+      poster_path: response.data.poster_path ? `https://image.tmdb.org/t/p/original${response.data.poster_path}` : process.env.BASE_URL + "/images/no-image.png",
+      backdrop_path: response.data.backdrop_path ? `https://image.tmdb.org/t/p/w1280${response.data.backdrop_path}` : process.env.BASE_URL + "/images/no-image.png",
+      vote_average: parseFloat(response.data.vote_average).toFixed(1),
+    };
+
+    try {
+      data.backdrop_blurHash = await dynamicBlurDataUrl(getCloudinaryUrl(data.backdrop_path));
+      data.poster_blurHash = await dynamicBlurDataUrl(getCloudinaryUrl(data.poster_path));
+    } catch (error) {
+      console.log(error, "Error in getColor");
+      throw error;
+    }
+
+    // Cache the processed data before returning
+    await redisClient.set(cacheKey, JSON.stringify(data), {
+      EX: 3600, // Set an expiration time (in seconds)
+    });
+
+    return data;
+  }
+
   const promises = response.data.results
     .map(async (item) => {
       let data = {
@@ -48,10 +72,8 @@ async function fetchAndProcessData(endpoint, query) {
         posterFontColor: "#ffffff",
         poster_path: item.poster_path ? `https://image.tmdb.org/t/p/original${item.poster_path}` : process.env.BASE_URL + "/images/no-image.png",
         backdrop_path: item.backdrop_path ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}` : process.env.BASE_URL + "/images/no-image.png",
+        vote_average: parseFloat(item.vote_average).toFixed(1),
       };
-
-      // data.poster_path = `https://image.tmdb.org/t/p/original${item.poster_path}`;
-      // data.backdrop_path = `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`;
 
       try {
         const color = await getColor(getCloudinaryUrl(data.backdrop_path));
@@ -63,8 +85,6 @@ async function fetchAndProcessData(endpoint, query) {
         data.posterFontColor = colorForPoster.fontColor;
         data.backdrop_blurHash = await dynamicBlurDataUrl(getCloudinaryUrl(data.backdrop_path));
         data.poster_blurHash = await dynamicBlurDataUrl(getCloudinaryUrl(data.poster_path));
-
-        data.vote_average = parseFloat(data.vote_average).toFixed(1);
       } catch (error) {
         console.log(error, "Error in getColor");
         throw error;
@@ -86,7 +106,7 @@ async function fetchAndProcessData(endpoint, query) {
 function errorHandlingMiddleware(err, req, res, next) {
   let code = 500;
   let message = "Internal Server Error";
-
+  console.log(err);
   res.status(code).json({ message });
 }
 
