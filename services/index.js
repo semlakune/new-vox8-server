@@ -41,12 +41,22 @@ async function fetchAndProcessData(endpoint, query) {
   if (response.data.id) { // If the response is a single movie detail
     let data = {
       ...response.data,
+      backdrop_color: "#000000",
+      poster_color: "#000000",
+      fontColor: "#ffffff",
+      posterFontColor: "#ffffff",
       poster_path: response.data.poster_path ? `https://image.tmdb.org/t/p/original${response.data.poster_path}` : process.env.BASE_URL + "/images/no-image.png",
       backdrop_path: response.data.backdrop_path ? `https://image.tmdb.org/t/p/w1280${response.data.backdrop_path}` : process.env.BASE_URL + "/images/no-image.png",
       vote_average: parseFloat(response.data.vote_average).toFixed(1),
     };
 
     try {
+      const color = await getColor(getCloudinaryUrl(data.backdrop_path));
+      const colorForPoster = await getColor(getCloudinaryUrl(data.poster_path));
+      data.backdrop_color = color.backgroundColor;
+      data.poster_color = colorForPoster.backgroundColor;
+      data.fontColor = color.fontColor;
+      data.posterFontColor = colorForPoster.fontColor;
       data.backdrop_blurHash = await dynamicBlurDataUrl(getCloudinaryUrl(data.backdrop_path));
       data.poster_blurHash = await dynamicBlurDataUrl(getCloudinaryUrl(data.poster_path));
     } catch (error) {
